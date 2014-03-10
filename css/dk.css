@@ -1,0 +1,12 @@
+body {
+    text-align: center;
+}
+
+body > * {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+li {
+    text-align: left;
+}

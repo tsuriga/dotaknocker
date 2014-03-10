@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Dota Knocker - The Dota API Query Tool</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+
+        <link rel="stylesheet" href="css/normalize.css">
+        <link rel="stylesheet" href="css/main.css">
+        <link rel="stylesheet" href="css/dk.css">
+        <script src="js/vendor/modernizr-2.6.2.min.js"></script>
+    </head>
+    <body>
+        <!--[if lt IE 7]>
+            <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+
+        <header>
+            <h1>Dota Knocker - The Dota API Query Tool</h1>
+
+            <p>Search Dota 2 Web API for player and see statistics for their Heroes</p>
+        </header>
+
+        <hr />
+
+        <div class="main" role="search">
+            <form action="api.php" method="get" data-bind="submit:search">
+                <label for="player_id">Player id</label>
+                <input type="text" name="player_id" id="player_id" autofocus />
+                <input type="submit" value="Search" />
+            </form>
+        </div>
+
+        <hr />
+
+        <div class="result" role="main" data-bind="">
+            <marquee direction="right"><em>Waiting for search...</em></marquee>
+        </div>
+
+        <hr />
+
+        <footer>
+            <p><em>Under the hood:</em> Dota Knocker API queries the Dota 2 Web API for 25 previous public matches for a player and saves that data to a Firebase database. It then calculates and returns overall statistics for all Heroes that the player has used for any recorded matches found for the player.</p>
+            <h3>Used tools</h3>
+            <ul>
+                <li>jQuery 2.1.0</li>
+                <li>Knockout 3.1.0</li>
+            </ul>
+        </footer>
+
+        <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script> -->
+        <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script> -->
+        <script>window.jQuery || document.write('<script src="js/vendor/jquery-2.1.0.min.js"><\/script>')</script>
+        <script>window.ko || document.write('<script src="js/vendor/knockout-3.1.0.min.js"><\/script>')</script>
+        <script src="js/plugins.js"></script>
+        <script src="js/main.js"></script>
+    </body>
+</html>
