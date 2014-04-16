@@ -24,24 +24,21 @@
 
         <header>
             <h1>Dota Knocker - The Dota API Query Tool</h1>
-
             <p>Search Dota 2 Web API for player and see statistics for their Heroes</p>
         </header>
 
         <hr />
 
         <div class="main" role="search">
-            <form action="api.php" method="get" data-bind="submit:search">
-                <label for="player_id">Player id</label>
-                <input type="text" name="player_id" id="player_id" autofocus />
-                <input type="submit" value="Search" />
+            <form action="api/" method="get" data-bind="submit:search">
+                <label for="player_id">Player name</label>
+                <input type="text" name="player_name" id="player_name" autofocus />
             </form>
         </div>
 
         <hr />
 
         <div class="result" role="main" data-bind="">
-            <marquee direction="right"><em>Waiting for search...</em></marquee>
         </div>
 
         <hr />
