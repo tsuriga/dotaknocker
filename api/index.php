@@ -1,7 +1,6 @@
 <?php
 /**
- * Dota Knocker API for querying Dota 2 Hero statistics from Dota Web API and
- * Firebase.
+ * Dota Knocker API for querying Dota 2 Hero statistics from Dota Web API
  */
 
 // INIT
@@ -24,81 +23,57 @@ function returnJson($content, $statusCode) {
 
 // SETUP
 
-require_once (VENDORPATH . 'firebase-php/firebaseLib.php');
 require_once (VENDORPATH . 'dota2-api/config.php');
+
+$pdo = new PDO('sqlite:dotaknocker.db');
+$pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_COLUMN);
 
 
 // ACT
 
 $searchedPlayerName = $_GET['player_name'];
 
-$firebase = new Firebase('https://dotaknocker.firebaseio.com/');
+// Recorded data
+$records['match'] = $pdo->query('SELECT id FROM match')
+    ->fetchAll();
+$records['player'] = $pdo->query('SELECT id FROM player')
+    ->fetchAll();
 
-// Fetch recordings from Firebase
-
-// IDs of recorded matches
-/*
-matchId
-*/
-$recordedMatches = json_decode($firebase->get('matches'));
-
-// Hero data per each player
-/*
-playerId ->
-    personas
-        -> personaName
-    heroes ->
-        heroId ->
-            useCount
-*/
-$recordedHeroData = json_decode($firebase->get('heroData'));
-
-
-// Parse new data
+// New data to insert to database
+$inserts = array(
+    'match' => array(),
+    'player' => array(),
+    'heroUse' => array(),
+    'persona' => array()
+);
+$updates = array(
+    'heroUse' => array(),
+);
 
 $heroes = new heroes();
 $heroes->parse();
-
-$playerHeroData = array();
-$playerAliases = array();
-
-// Return data
-/*
-heroData ->
-    heroData (for matching player)
-privateCount ->
-    privateCount
-dotaIdCount ->
-    dotaIdCount
-matchCount ->
-    matchCount
-*/
-$returnData = array();
 
 // Fetch matches by player name from DOTA API
 
 $matchesMapper = new matches_mapper_web();
 $matchesMapper
     ->set_player_name($searchedPlayerName)
-    ->set_matches_requested(1);
+    ->set_matches_requested(25);
 $matches = $matchesMapper->load();
 
 $privateCount = 0;
-$dotaIdCount = 0;
 
 foreach ($matches as $match) {
     $matchId = $match->get('match_id');
 
     // Skip match if it has been recorded already
-    if (in_array($matchId, $recordedMatches)) {
+    if (in_array($matchId, $records['match'])) {
         continue;
     }
 
-    $recordedMatches[] = $matchId;
+    $inserts['match'][] = array('id' => $matchId);
 
     foreach ($match->get_all_slots() as $slot) {
-        $dotaIdCount++;
-
         $dotaId = $slot->get('account_id');
         $heroId = $slot->get('hero_id');
 
@@ -110,23 +85,42 @@ foreach ($matches as $match) {
             continue;
         }
 
+        if (!in_array($dotaId, $records['player'])) {
+            $inserts['player'][] = array('id' => $dotaId);
+        }
+
         $steamId = player::convert_id($dotaId);
 
-        // Initialize hero data entry
-        if (!isset($recordedHeroData[$dotaId])) {
-            $recordedHeroData[$dotaId] = array(
-                'personas' => array(),
-                'heroes' => array(),
-                'matches' => array()
+        // Initialize hero use entry
+        $heroDataForAccount =
+            $pdo->query(
+                sprintf(
+                    'SELECT
+                        heroId, useCount
+                    FROM
+                        heroUse
+                    WHERE
+                        playerId = %s
+                    AND
+                        heroId = %s',
+                    $pdo->quote($dotaId),
+                    $pdo->quote($heroId)
+                )
+            )->fetch(PDO::FETCH_ASSOC);
+
+        if (!$heroDataForAccount) {
+            $inserts['heroUse'][] = array(
+                'playerId' => $dotaId,
+                'heroId' => $heroId,
+                'useCount' => 1
+            );
+        } else {
+            $updates['heroUse'][] = array(
+                'playerId' => $dotaId,
+                'heroId' => $heroId,
+                'useCount' => $heroDataForAccount['useCount'] + 1
             );
         }
-
-        // Add hero to statistics
-        if (!isset($recordedHeroData[$dotaId]['heroes'][$heroId])) {
-            $recordedHeroData[$dotaId]['heroes'][$heroId] = 0;
-        }
-
-        $recordedHeroData[$dotaId]['heroes'][$heroId]++;
 
         // Add persona name to statistics
         $players_mapper_web = new players_mapper_web();
@@ -134,43 +128,106 @@ foreach ($matches as $match) {
             ->add_id($steamId)
             ->load();
 
+        $personaDataForAccount =
+            $pdo->query(
+                sprintf(
+                    'SELECT name FROM persona WHERE playerId = %s',
+                    $pdo->quote($dotaId)
+                )
+            )->fetchAll();
+
         foreach ($playerInfo as $player) {
             $personaName = $player->get('personaname');
 
-            if (!in_array(
-                $personaName,
-                $recordedHeroData[$dotaId]['personas'])
-            ) {
-                $recordedHeroData[$dotaId]['personas'][] = $personaName;
-            }
-
-            // Record aliases and heroes for matching persona
-            if ($personaName === $searchedPlayerName) {
-                // Add persona aliases
-                foreach ($recordedHeroData[$dotaId]['personas'] as $persona) {
-                    if (!in_array($persona, $playerAliases)) {
-                        $playerAliases[] = $persona;
-                    }
-                }
-
-                // Add heroes
-                if (!isset($playerHeroData[$heroId])) {
-                    // TODO
-                    // $playerHeroData[]
-                    //
-                }
+            if (!in_array($personaName, $personaDataForAccount)) {
+                $inserts['persona'][] = array(
+                    'name' => $personaName,
+                    'playerId' => $dotaId
+                );
             }
         }
     }
 }
 
-// Save data back in Firebase
+// Save data back into the database
+foreach ($inserts as $table => $values) {
+    if ($values[0] == null) {
+        continue;
+    }
+
+    foreach ($values as $entry) {
+        $pdo->query(
+            sprintf(
+                'INSERT INTO %s (%s) VALUES (%s)',
+                $table,
+                implode(', ', array_keys($entry)),
+                implode(', ',
+                    array_map(function ($value) {
+                        global $pdo;
+                        return $pdo->quote($value);
+                    }, $entry)
+                )
+            )
+        );
+    }
+}
+
+foreach ($updates['heroUse'] as $useData) {
+    $pdo->query(
+        sprintf(
+            'UPDATE heroUse SET useCount = %s WHERE heroId = %s',
+            $useData['useCount'],
+            $useData['heroId']
+        )
+    );
+}
+
+
+// FETCH RETURN DATA
+
+$playerId =
+    $pdo->query(
+        sprintf(
+            'SELECT playerId FROM persona WHERE name LIKE %s',
+            $pdo->quote($searchedPlayerName)
+        )
+    )->fetch();
+
+// Played heroes
+$heroResult = $playerId ?
+    $pdo->query(
+        sprintf(
+            'SELECT heroId, useCount FROM heroUse WHERE playerId = %s',
+            $pdo->quote($playerId)
+        )
+    )->fetchAll(PDO::FETCH_ASSOC):
+    array();
+$heroData = array();
+
+foreach ($heroResult as $hero) {
+    $heroData[$hero['heroId']] = (int)$hero['useCount'];
+}
+
+// Used aliases
+$playerAliases = $playerId ?
+    $pdo->query(
+        sprintf(
+            'SELECT name FROM persona WHERE playerId = %s',
+            $pdo->quote($playerId)
+        )
+    )->fetchAll():
+    array();
 
 // Format return data
-$returnData['heroData'] = $playerHeroData;
+$returnData = array();
+$returnData['heroes'] = $heroData;
 $returnData['privateCount'] = $privateCount;
-$returnData['dotaIdCount'] = $dotaIdCount;
-$returnData['matchCount'] = count($recordedMatches);
+$returnData['newDotaIdCount'] = count($inserts['player']);
+$returnData['totalDotaIdCount'] =
+    count($records['player']) + count($inserts['player']);
+$returnData['newMatchCount'] = count($inserts['match']);
+$returnData['totalMatchCount'] =
+    count($records['match']) + count($inserts['match']);
 $returnData['aliases'] = $playerAliases;
 
 returnJson($returnData, 200);

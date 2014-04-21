@@ -1,12 +1,16 @@
 body {
-    text-align: center;
+    background: #EEE;
+    color: #333;
 }
 
-body > * {
-    max-width: 640px;
-    margin: 0 auto;
+header, footer, .centered {
+    text-align: center;
 }
 
 li {
     text-align: left;
+}
+
+.row {
+    margin-bottom: 1rem;
 }

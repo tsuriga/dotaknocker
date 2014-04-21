@@ -6,16 +6,17 @@
     <head>
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title>Dota Knocker - The Dota API Query Tool</title>
+        <title>Dota Knocker - Hero statistics by player alias</title>
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
         <link rel="stylesheet" href="css/normalize.css">
+        <link rel="stylesheet" href="css/foundation.css" />
         <link rel="stylesheet" href="css/main.css">
         <link rel="stylesheet" href="css/dk.css">
-        <script src="js/vendor/modernizr-2.6.2.min.js"></script>
+        <script src="js/vendor/modernizr-2.7.2.min.js"></script>
     </head>
     <body>
         <!--[if lt IE 7]>
@@ -23,39 +24,80 @@
         <![endif]-->
 
         <header>
-            <h1>Dota Knocker - The Dota API Query Tool</h1>
-            <p>Search Dota 2 Web API for player and see statistics for their Heroes</p>
+            <h1>Dota Knocker</h1>
+            <p>Search the DotA 2 Web API for player aliases and see their Hero statistics</p>
         </header>
 
-        <hr />
+        <div class="row">
+            <hr />
 
-        <div class="main" role="search">
-            <form action="api/" method="get" data-bind="submit:search">
-                <label for="player_id">Player name</label>
-                <input type="text" name="player_name" id="player_name" autofocus />
-            </form>
+            <div class="small-4 small-centered columns">
+                <div class="main" role="search">
+                    <form action="api/" method="get" data-bind="submit:search">
+                        <input type="text" name="player_name" id="player_name" autofocus placeholder="Search for an alias" />
+                    </form>
+                </div>
+            </div>
+
+            <hr />
         </div>
 
-        <hr />
-
-        <div class="result" role="main" data-bind="">
+        <div class="row centered" data-bind="visible: showLoader" style="display: none">
+            <div class="large-12 large-centered columns">
+                <img src="img/ajax-loader.gif" alt="Loading" />
+            </div>
         </div>
 
-        <hr />
+
+        <div class="row" role="main" data-bind="visible: showResults" style="display: none">
+
+            <div class="large-12 columns centered" data-bind="visible: showResultNotification">
+                <p>No results found</p>
+            </div>
+
+            <div class="large-6 columns" data-bind="visible: showResultDetails">
+                <div id="heroes">
+                    <h3>Heroes</h3>
+                    <ul data-bind="foreach: heroes">
+                        <li>
+                            <img data-bind="attr: { src: thumbSrc, alt: name, title: name }" />
+                            <span class="hero-use" data-bind="text: useCount"></span>
+                            use<span data-bind="visible: useCount > 1">s</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="large-6 columns" data-bind="visible: showResultDetails">
+                <div id="aliases">
+                    <h3>Aliases</h3>
+                    <ul data-bind="foreach: aliases">
+                        <li data-bind="text: $data"></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="large-12 columns">
+                <p data-bind="visible: privateCount > 0">
+                    <span data-bind="text: privateCount"></span> players in the search results have a private profile
+                </p>
+            </div>
+
+            <hr />
+        </div>
 
         <footer>
-            <p><em>Under the hood:</em> Dota Knocker API queries the Dota 2 Web API for 25 previous public matches for a player and saves that data to a Firebase database. It then calculates and returns overall statistics for all Heroes that the player has used for any recorded matches found for the player.</p>
-            <h3>Used tools</h3>
-            <ul>
-                <li>jQuery 2.1.0</li>
-                <li>Knockout 3.1.0</li>
-            </ul>
+            <p>For more thorough statistics go to <a href="http://dotabuff.com/">DOTABUFF</a></p>
         </footer>
 
         <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/3.1.0/knockout-min.js"></script> -->
         <!-- <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script> -->
         <script>window.jQuery || document.write('<script src="js/vendor/jquery-2.1.0.min.js"><\/script>')</script>
         <script>window.ko || document.write('<script src="js/vendor/knockout-3.1.0.min.js"><\/script>')</script>
+        <script src="js/foundation.min.js"></script>
+        <script>
+            $(document).foundation();
+        </script>
         <script src="js/plugins.js"></script>
         <script src="js/main.js"></script>
     </body>
