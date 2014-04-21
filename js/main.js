@@ -42,10 +42,10 @@ var viewModel = {
                     });
                 });
 
-                // Sort heroes by use count
+                // Sort heroes in descending order by use count
                 viewModel.heroes.sort(function (left, right) {
                     return left.useCount === right.useCount ? 0:
-                        (left.useCount > right.useCount ? 1 : -1);
+                        (left.useCount > right.useCount ? -1 : 1);
                 });
             }
         );
